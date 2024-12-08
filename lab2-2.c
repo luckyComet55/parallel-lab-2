@@ -185,12 +185,9 @@ int main(int argc, char *argv[]) {
     MPI_Finalize();
     end = clock();
 
-    char fName[MAX_FILE_NAME];
-    sprintf(fName, "Performance/%d/%d", SIZE, procNum);
-
-    FILE *resF = fopen(fName, "w");
-    fprintf(resF, "%lf", (double)(end - start));
-    fclose(resF);
+    if (rank == 0) {
+        printf("time taken: %lf\n", (double)end - start);
+    }
 
     return 0;
 }
