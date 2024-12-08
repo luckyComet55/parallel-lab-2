@@ -9,7 +9,6 @@ void input_vector(int *vec, int n, int my_rank) {
             vec[i] = rand() % 100;
         }
     }
-    MPI_Bcast(vec, n, MPI_INT, 0, MPI_COMM_WORLD);
 }
 
 void input_matrix(int *matrix, int rows, int cols, int my_rank) {
@@ -18,7 +17,6 @@ void input_matrix(int *matrix, int rows, int cols, int my_rank) {
             matrix[i] = rand() % 100;
         }   
     }
-    MPI_Bcast(matrix, cols * rows, MPI_INT, 0, MPI_COMM_WORLD);
 }
 
 void multiply_mat_vec_cols(int *local_mat, int *local_vec, int *local_res, int rows, int cols, int start_col, int end_col) {
@@ -53,19 +51,33 @@ int main(int argc, char *argv[]) {
 
     if (my_rank == 0) {
         result = malloc(res_size * sizeof(int));
+        for (int i = 0; i < res_size; i++) {
+            result[i] = 0;
+        }
     }
     input_vector(vec, vec_size, my_rank);
     input_matrix(mat, rows, cols, my_rank);
+    MPI_Bcast(vec, vec_size, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(mat, cols * rows, MPI_INT, 0, MPI_COMM_WORLD);
 
-    int local_cols = cols / comm_sz;
-    int start_col = my_rank * local_cols;
-    int end_col = start_col + local_cols;
-    if (my_rank == comm_sz - 1) {
-        end_col = cols;
+    int local_cols = 1;
+    int start_col = 0;
+    int end_col = 0;
+    if (my_rank < cols) {
+        if (comm_sz <= cols) {
+            local_cols = cols / comm_sz;
+        }
+        start_col = my_rank * local_cols;
+        end_col = start_col + local_cols;
+        if (my_rank == comm_sz - 1) {
+            end_col = cols;
+        }
     }
 
     double start_time = MPI_Wtime();
-    multiply_mat_vec_cols(mat, vec, local_res_vec, rows, cols, start_col, end_col);
+    if (my_rank < cols) {
+        multiply_mat_vec_cols(mat, vec, local_res_vec, rows, cols, start_col, end_col);
+    }
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Reduce(local_res_vec, result, res_size, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
     double end_time = MPI_Wtime();
