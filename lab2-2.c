@@ -4,14 +4,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define SIZE 4096
-#define MAX_FILE_NAME sizeof("Performance/4096/32")
-
-void fillMatrix(int **A) {
-    for (int i = 0; i < SIZE; i++) {
+void fillMatrix(int **A, int size) {
+    for (int i = 0; i < size; i++) {
         for (int j = 0; j <= i; j++) {
             if (i == j) {
-                A[i][j] = i + SIZE;
+                A[i][j] = i + size;
             } else {
                 A[i][j] = i;
                 A[j][i] = i;
@@ -53,13 +50,15 @@ void multiplyMatByMat(int **a, int **b, int size, int ***c) {
 
 int main(int argc, char *argv[]) {
     int **A = NULL, **B = NULL, **C = NULL;
-    int count = SIZE * SIZE;
 
     MPI_Comm procGrid;
     int procNum;
     int sqrtProcNum;
     int blockNum;
     int bCastData[2], coord[2];
+
+    int dimention = atoi(argv[1]);
+    int count = dimention * dimention;
 
     int **locA = NULL, **locB = NULL, **locC = NULL;
     int left, right, up, down;
@@ -78,15 +77,15 @@ int main(int argc, char *argv[]) {
         int n;
 
         sqrtProcNum = (int)sqrt(procNum);
-        blockNum = SIZE / (int)sqrt(procNum);
+        blockNum = dimention / (int)sqrt(procNum);
 
-        allocateMatrix(&A, SIZE);
-        allocateMatrix(&B, SIZE);
+        allocateMatrix(&A, dimention);
+        allocateMatrix(&B, dimention);
 
-        fillMatrix(A);
-        fillMatrix(B);
+        fillMatrix(A, dimention);
+        fillMatrix(B, dimention);
 
-        allocateMatrix(&C, SIZE);
+        allocateMatrix(&C, dimention);
 
         bCastData[0] = sqrtProcNum;
         bCastData[1] = blockNum;
@@ -101,7 +100,7 @@ int main(int argc, char *argv[]) {
     int reorder = 1;
     MPI_Cart_create(MPI_COMM_WORLD, 2, dim, period, reorder, &procGrid);
 
-    int originalMatSize[2] = {SIZE, SIZE};
+    int originalMatSize[2] = {dimention, dimention};
     int subMatSize[2] = {blockNum, blockNum};
     int startInd[2] = {0, 0};
     MPI_Datatype type, subarrtype;
