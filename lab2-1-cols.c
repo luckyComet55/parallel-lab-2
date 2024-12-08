@@ -11,17 +11,9 @@ void input_vector(int *vec, int n, int my_rank) {
     }
 }
 
-void input_matrix(int *matrix, int rows, int cols, int my_rank) {
-    if (my_rank == 0) {
-        for (int i = 0; i < rows * cols; i++) {
-            matrix[i] = rand() % 100;
-        }   
-    }
-}
-
 void multiply_mat_vec_cols(int *local_mat, int *local_vec, int *local_res, int rows, int cols, int start_col, int end_col) {
     for (int i = 0; i < rows; i++) {
-        for (int j = start_col; i < end_col; j++) {
+        for (int j = start_col; j < end_col; j++) {
             local_res[i] += local_mat[i * cols + j] + local_vec[j];
         }
     }
@@ -56,9 +48,9 @@ int main(int argc, char *argv[]) {
         }
     }
     input_vector(vec, vec_size, my_rank);
-    input_matrix(mat, rows, cols, my_rank);
+    input_vector(mat, rows * cols, my_rank);
     MPI_Bcast(vec, vec_size, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(mat, cols * rows, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(mat, rows * cols, MPI_INT, 0, MPI_COMM_WORLD);
 
     int local_cols = 1;
     int start_col = 0;
@@ -85,7 +77,6 @@ int main(int argc, char *argv[]) {
     double duration = end_time - start_time;
     double max_duration;
     MPI_Reduce(&duration, &max_duration, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-
     if (my_rank == 0) {
         printf("time taken: %lf\n", max_duration * 1e3);
     }
